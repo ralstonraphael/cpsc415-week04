@@ -1,0 +1,22 @@
+[
+  {
+    "type": "single_page",
+    "question": "When is the Week 4 Ask the course assignment due on Moodle?"
+  },
+  {
+    "type": "single_page",
+    "question": "What percentage of the course grade is the Individual Portfolio: AI-Enabled Profile Site?"
+  },
+  {
+    "type": "single_page",
+    "question": "In the Week 3 lab intent, what three fields must the classifier print in JSON?"
+  },
+  {
+    "type": "two_page",
+    "question": "When was the Week 3 structured-output assignment due, and how many 24-hour late days does the syllabus grant each student?"
+  },
+  {
+    "type": "unanswerable",
+    "question": "What color is Prof. Kousen's office door?"
+  }
+]

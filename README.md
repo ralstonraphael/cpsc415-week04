@@ -1,45 +1,82 @@
-# Artifact-chain template
+# Week 4: Ask the course
 
-Starting point for major project submissions in CPSC 415 (AI Integration, Trinity College). Click **Use this template** on GitHub to create your own repository from it. Do not fork.
+A local question-answering page for CPSC 415. It embeds the course's Markdown
+pages, retrieves the five closest excerpts for a question, and asks
+`openai/gpt-6-luna` to answer from those excerpts with file and line citations.
+It uses `openai/text-embedding-3-small` for both document and question
+embeddings. The page and server output show every retrieved excerpt and its
+cosine score. When the evidence is insufficient, the answer is exactly
+`I can't find that in the course documents.`
 
-The course follows Anthropic's [AI-Native SDLC Playbook](https://claude.com/blog/the-ai-native-sdlc-playbook): every stage of the work leaves a short, version-controlled artifact. The agent writes most of the code. You decide what gets built, steer, verify, and explain every choice. These files are how you prove you understood what the agent built.
+## Setup and use
 
-## Early labs
+Use Python 3.10 and [uv](https://docs.astral.sh/uv/). Place the course checkout
+beside this repository, at `../ai-integration-course`. If it is absent, run
+`git clone https://github.com/kousen/ai-integration-course.git ../ai-integration-course`
+from this repository. The indexer reads only that checkout's `syllabus.md`,
+`assignments/**/*.md`, and `weeks/01` through `weeks/03` Markdown files. It
+does not index Week 4 or copy the pages into this repository.
 
-Week 1 uses the minimal repository described in the course handout. Later introductory labs complete only the stages assigned so far. This template describes the full chain for team projects and the final portfolio; it does not require unintroduced artifacts in Week 1. Project languages are chosen and justified, with one separate guided exercise in an unfamiliar language.
+Put your OpenRouter key in an ignored local `.env` file as
+`OPENROUTER_API_KEY=your-key`. From this repository, run:
 
-## The chain
-
-| Stage | File | Written by | Approved by |
-|---|---|---|---|
-| Plan | `intent/<name>.md` | The agent, after interviewing you | You |
-| Design | `spec.md` | The agent, from the approved intent | You, against the intent |
-| Build | `plan.md`, then code on a branch | The agent | You, before any code |
-| Test | tests, lint, CI | The agent | You confirm the loop actually ran |
-| Deploy | a pull request reviewed against `REVIEW.md` | A separate reviewing agent | You merge |
-| Maintain | a new `intent/<name>.md` | Triggered by a bug, a ticket, or a model change | You triage |
-
-`CLAUDE.md` and `REVIEW.md` travel with the repo and are graded artifacts.
-
-## Rules that are graded
-
-- Intent and spec exist before code. Plan is approved before implementation. The commit history shows it.
-- One pull request per feature, from a branch, reviewed before merge. Do not commit to `main` directly after the first commit.
-- `spec.md` states the **language** and the **model** for each component and why.
-- `ANNOTATION.md` answers the four questions for the finished project.
-- No secrets in the repo. `.claude/settings.local.json` and `.env` are ignored; the `.example` file shows the shape.
-
-## Submitting
-
-Tag the commit you are submitting and put the repository URL plus the tag on Moodle:
-
-```
-git tag tp1-submitted
-git push origin tp1-submitted
+```sh
+uv sync --python 3.10
+set -a; source .env; set +a
+uv run python index_course.py
+uv run python app.py
 ```
 
-Tags the course uses: `intent-spec`, `tp1-submitted`, `tp2-submitted`, `portfolio-final`.
+Open <http://127.0.0.1:8924/> and enter a question. The server binds only to
+`127.0.0.1`; set `PORT` to change the port. `OPENROUTER_API_KEY` is required
+for indexing and answering. `CHAT_MODEL` optionally overrides the default
+`openai/gpt-6-luna` answer model. The generated `index.json` and `.env` are
+ignored by Git. Rebuild the index after the sibling course pages change.
 
-## Running the agent
+To repeat the five-case comparison with the same answer model in both modes,
+run `uv run python eval_questions.py`. It prints the five scored retrieval hits
+and cited answer, then asks the same question with no excerpts in the prompt.
+The recorded results and judgments are in `CHECKS.md`.
 
-Copy `.claude/settings.local.json.example` to `.claude/settings.local.json` and fill in your OpenRouter key and model slugs, or use the `orclaude` launcher from the [course repository](https://github.com/kousen/ai-integration-course/tree/main/scripts).
+## Five questions and results
+
+The agent drafted these questions at the user's explicit request. They are
+recorded in `questions.json`; they are **not claimed as student-authored**.
+
+| # | Question | What it checks | With retrieval | Without retrieval |
+|---:|---|---|---|---|
+| 1 | When is the Week 4 Ask the course assignment due on Moodle? | Single-page due date in the assignment sheet. | Pass: October 19, 2026, 1:30 PM, cited. | Fail: asks for the course page. |
+| 2 | What percentage of the course grade is the Individual Portfolio: AI-Enabled Profile Site? | Single-page grade weight. | Pass: 25%, cited. | Fail: cannot supply the grade weight. |
+| 3 | In the Week 3 lab intent, what three fields must the classifier print in JSON? | Single-page lab instruction. | Pass: category, urgency, one-sentence reason, cited. | Fail: invents different fields. |
+| 4 | When was the Week 3 structured-output assignment due, and how many 24-hour late days does the syllabus grant each student? | Combines an assignment page and the syllabus. | Pass: October 5, 2026, 1:30 PM and three late days, with both citations. | Fail: asks for the missing pages. |
+| 5 | What color is Prof. Kousen's office door? | Unanswerable detail; requires the exact refusal. | Pass: exact refusal, no citation. | Fail: does not use the required refusal sentence. |
+
+The recorded evaluation passed **5/5 with retrieval** and **0/5 without
+retrieval under the task's expected-answer criteria**. The baseline
+did avoid guessing the door color, but did not give the required sentence; its
+other answers either lacked the course facts or invented fields. Retrieval
+provided the course evidence and citations, while the no-excerpt baseline
+had no way to verify those details.
+
+## Stale Xiaomi MiMo pages
+
+For “Which Xiaomi MiMo model does this course use as the fallback or second
+model?”, retrieval found both `weeks/01/setup.md:14-20` and
+`weeks/03/lab.md:78-82`. The older Week 1 setup calls `xiaomi/mimo-v2.5` an
+instructor fallback; the newer Week 3 lab calls `xiaomi/mimo-v2.6-flash` its
+second model. The first answer mentioned only Week 3 despite retrieving both.
+After a general instruction to report differing names with their page or week
+contexts, the answer reported and cited both. One possible improvement is to
+store each source line's Git last-change date and prefer newer evidence when
+two pages make competing claims, while still showing both. That recency change
+is not implemented. `CHECKS.md` records the answer, five hit sources and
+scores, and the dates.
+
+## A line I can explain
+
+In `course_rag.py:209`,
+`sum(a * b for a, b in zip(chunk.embedding, question_vector))` computes the
+dot product of a document chunk and the question embedding. The next line
+divides by their lengths to get cosine similarity; the highest-scoring five
+chunks are sent to the answer model. A high score makes a chunk relevant, but
+the answer still needs explicit support in its text.

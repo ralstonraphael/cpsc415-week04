@@ -55,7 +55,7 @@ Implements `intent/ask-the-course.md`.
 - **Interfaces:** `uv run python app.py` binds to `127.0.0.1` and serves a
   local page with a question field and a result view. The backend reads
   `OPENROUTER_API_KEY`, `index.json`, and optional `CHAT_MODEL`. A separate
-  `uv run python eval_questions.py` reads the student's `questions.json` and
+  `uv run python eval_questions.py` reads `questions.json` and
   runs each question with retrieval and as an unguided baseline: the same
   answer model receives the question without excerpts or the instruction to
   answer only from excerpts. This isolates the effect of retrieval. Neither
@@ -81,7 +81,7 @@ Implements `intent/ask-the-course.md`.
    of the retrieved chunks.
 5. If the documents do not support an answer, show exactly `I can't find that
    in the course documents.` and do not present an unsupported citation.
-6. The user-written `questions.json` has five cases: three answered in one
+6. `questions.json` has five cases: three answered in one
    place, one requiring two pages, and one absent from the corpus. The eval
    runs all five with retrieval and as the unguided baseline just described,
    records both outputs and retrieved sources, and leaves pass/fail judgments
@@ -114,3 +114,8 @@ model prices; check OpenRouter's usage totals during evaluation.
 Public hosting, authentication, indexing Week 4 pages, answering from general
 model knowledge, automatically resolving stale-page conflicts, and a managed
 vector database.
+
+## Later direction
+After the spec and plan were approved, the user asked the agent to draft the
+five evaluation questions. The author is disclosed in `README.md` and
+`CHECKS.md`; the approved spec commit remains in Git history.

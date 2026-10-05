@@ -12,7 +12,7 @@ this plan is approved and committed.
 | `index_course.py` | Walk exactly the allowed sibling files, chunk and embed them, save the JSON index, and print counts. |
 | `course_rag.py` | Load the index, embed a question, cosine-rank chunks, print evidence and scores, and generate a cited answer or refusal. Share this between web and eval. |
 | `app.py`, `templates/index.html` | Serve the question form and show answers, citations, chunks, scores, and local errors. |
-| `questions.json` | Five questions written by the student: three single-page, one two-page, one unanswerable. |
+| `questions.json` | Five evaluation questions: three single-page, one two-page, one unanswerable. |
 | `eval_questions.py` | Run the five questions with retrieval and as an unguided, no-excerpt baseline using the same chat model. |
 | `CHECKS.md` | Record both eval runs, failures and their chunk sources, and the stale-page finding. |
 | `README.md` | Explain setup, environment, index and web commands, question purposes, results, stale page, and a ranking or refusal line. |
@@ -32,7 +32,7 @@ this plan is approved and committed.
    answer and printed evidence before continuing.
 4. Build the Flask page and ask through it. Show the local page and server
    output for a cited answer and an unsupported question before continuing.
-5. Have the student write the five `questions.json` cases. Build the eval
+5. Draft the five `questions.json` cases. Build the eval
    runner, run both modes, and record pass/fail findings in `CHECKS.md`.
    Then ask the required Xiaomi MiMo stale-page question and record the answer,
    top-five chunks with scores, whether both conflicting pages were retrieved,
@@ -44,7 +44,7 @@ this plan is approved and committed.
 | Step | What could break and how to notice | Response |
 |---|---|---|
 | 1–2 | Wrong sibling path or a tiny index; the corpus should have 16 Markdown files. | Fail on missing roots and print file and chunk counts before any asker work. |
-| 2 | Splitting a heading, table, or policy destroys context. | Target about 220 words with 40 words of overlap; allow up to 300 to keep a short table together, carry the heading into each chunk, and inspect lengths and source lines. |
+| 2 | Splitting a heading, table, or policy destroys context. | Use about 220 words as the upper target for long sections, with 40 words of overlap within a section; keep short sections intact, allow up to 300 to keep a table together, and inspect headings and source lines. |
 | 2–3 | Index and question embeddings use different models or vector sizes. | Save the model ID and vector size, and reject mismatches. |
 | 3–5 | A nearest chunk is irrelevant, or two pages disagree; similarity measures relevance rather than currentness. | Require support from cited excerpts, check citations against retrieved sources, tell the model to expose a retrieved conflict, and use the unanswerable eval. Record any stale-page answer without silently fixing it. |
 | 3–5 | OpenRouter times out or returns an error; a Luna comparison call already timed out once. | Use bounded timeouts and surface a clear local error; never show the key. |
@@ -57,7 +57,10 @@ For API-backed steps, first export the key from the ignored local file with
 1. `uv sync` exits successfully; `uv run python -c "import flask, openai"`
    exits 0. `git check-ignore .env index.json` prints both filenames.
 2. `uv run python index_course.py` prints **16 files**, a plausible nonzero
-   chunk count (roughly 60–110), and **1,536 dimensions**. Its source-path
+   chunk count, and **1,536 dimensions**. The initial 60–110 estimate was
+   revised after the build found **146 chunks**: the source has 137 headings,
+   and keeping short sections separate preserves the correct heading for a
+   policy. Its source-path
    summary contains `syllabus.md`, `assignments/`, and `weeks/01`–`03`, with no
    `weeks/04` path. It prints minimum, median, and maximum chunk word counts;
    inspect sample chunks from the syllabus grading table and late-day policy
@@ -71,7 +74,7 @@ For API-backed steps, first export the key from the ignored local file with
    grading question in a browser shows 15%, a `syllabus.md` citation, five
    chunks, and scores; the server output also prints them. A blank question
    causes no API call.
-5. `uv run python eval_questions.py` prints each of the five student-written
+5. `uv run python eval_questions.py` prints each of the five
    questions with retrieval and without excerpts in the prompt. `CHECKS.md`
    records which passed, which failed and why, and the printed chunk sources
    for failures. For the Xiaomi question, record the answer and top-five source
@@ -85,8 +88,9 @@ For API-backed steps, first export the key from the ignored local file with
    visible on GitHub.
 
 ## Questions asked before approval
-1. **"Why that chunk size?"** About 220 words usually keeps one course
-   policy or lab step together; 40 words of overlap reduces boundary misses.
+1. **"Why that chunk size?"** About 220 words is an upper target that usually
+   keeps one course policy or lab step together; shorter heading sections stay
+   short, and 40 words of overlap reduces boundary misses.
    Five hits then fit in a modest answer prompt instead of sending whole
    pages. **Correction:** state the target, table exception, heading carryover,
    and chunk-length proof in steps 2 and the Risks and Proof sections.
@@ -104,3 +108,7 @@ spec. Implementation and proof will be sequential to honor the lab's pause
 after each step. No separate worktree is needed for this introductory lab.
 
 **Approved by:** Ralston Raphael, October 5, 2026 (in chat)
+
+**Later direction:** On October 5, the user asked the agent to draft the five
+evaluation questions. `questions.json`, `CHECKS.md`, and `README.md` disclose
+that authorship; the original approval commit remains in Git history.
